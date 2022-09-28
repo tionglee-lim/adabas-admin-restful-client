@@ -66,7 +66,7 @@ func List(clientInstance *client.AdabasAdmin, param string, auth runtime.ClientA
 		return fmt.Errorf("Need to be of format: <location>:<reference>")
 	}
 	params.Location = p[0]
-	params.File = p[1]
+	params.File = &p[1]
 	resp, err := clientInstance.Browser.Browse(params, auth)
 	if err != nil {
 		switch err.(type) {
@@ -123,7 +123,7 @@ func Upload(clientInstance *client.AdabasAdmin, param string, input string, auth
 	if ferr != nil {
 		return ferr
 	}
-	params.UploadFile = runtime.NamedReader(input, file)
+	params.FileUpload = runtime.NamedReader(input, file)
 	defer file.Close()
 	resp, err := clientInstance.Browser.UploadFile(params, auth)
 	if err != nil {

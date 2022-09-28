@@ -22,6 +22,7 @@ package database
 import (
 	"bytes"
 	"fmt"
+	"strconv"
 
 	"github.com/go-openapi/runtime"
 	"golang.org/x/text/language"
@@ -36,7 +37,7 @@ func Fields(clientInstance *client.AdabasAdmin, dbid int, fnr int, auth runtime.
 	params := online_offline.NewGetFieldDefinitionTableParams()
 	rfc3339 := true
 	params.Rfc3339 = &rfc3339
-	params.Dbid = float64(dbid)
+	params.Dbid = strconv.Itoa(dbid)
 	params.File = float64(fnr)
 	resp, err := clientInstance.OnlineOffline.GetFieldDefinitionTable(params, auth)
 	if err != nil {
@@ -87,7 +88,7 @@ func Fields(clientInstance *client.AdabasAdmin, dbid int, fnr int, auth runtime.
 // AddFields add Adabas fields
 func AddFields(clientInstance *client.AdabasAdmin, dbid int, fnr int, fdt string, auth runtime.ClientAuthInfoWriter) error {
 	params := online_offline.NewModifyFieldDefinitionTableParams()
-	params.Dbid = float64(dbid)
+	params.Dbid = strconv.Itoa(dbid)
 	params.File = float64(fnr)
 	params.Addfields = fdt
 	fmt.Println("Add fields", fdt)
@@ -108,42 +109,73 @@ func AddFields(clientInstance *client.AdabasAdmin, dbid int, fnr int, fdt string
 
 }
 
-func printFields(p *message.Printer, f *models.Field) {
+func printFields(p *message.Printer, fdt interface{}) {
+
 	space := bytes.Buffer{}
-	for i := 0; i < int(f.Level); i++ {
-		space.WriteString(" ")
-	}
-	after := bytes.Buffer{}
-	for i := int(f.Level); i < 8; i++ {
-		after.WriteString(" ")
-	}
-	switch f.Type {
-	case "PHONETIC":
-		p.Printf(" PHONETIC I   %3s I  %5s   \n",
-			f.Name, f.Flags)
-	case "FIELD":
-		p.Printf("%s%d%s I %3s  I %6d  I %3s   I %s\n", space.String(), f.Level, after.String(),
-			f.Name, f.Length, f.Format, f.Flags)
-	case "COLLATION":
-		p.Printf(" COLL     I    %-17s \n", f.Flags)
-	case "SUB":
-		fsf := (f.SubFields)[0]
-		sf := *fsf
-		p.Printf(" SUB      I   %3s I %5d I %5s  I %-17s I %3s(%5d,%5d)\n",
-			f.Name, f.Length, f.Format, f.Flags, sf.SubName, sf.From, sf.To)
-	case "SUPER":
-		for i, s := range f.SubFields {
-			if i == 0 {
-				p.Printf(" SUPER    I   %3s I %5d I %5s  I %-17s I %3s(%5d,%5d)\n",
-					f.Name, f.Length, f.Format, f.Flags, s.SubName, s.From, s.To)
-			} else {
-				p.Printf("          I       I       I        I %-17s I %3s(%5d,%5d)\n", " ", s.SubName, s.From, s.To)
+
+	switch v := fdt.(type) {
+	case *models.Field:
+
+		f, _ := fdt.(*models.Field)
+
+		for i := 0; i < int(f.Level); i++ {
+			space.WriteString(" ")
+		}
+		after := bytes.Buffer{}
+		for i := int(f.Level); i < 8; i++ {
+			after.WriteString(" ")
+		}
+		switch f.Type {
+		case "FIELD":
+			p.Printf("%s%d%s I %3s  I %6d  I %3s   I %s\n", space.String(), f.Level, after.String(),
+				f.Name, f.Length, f.Format, f.Flags)
+		default:
+			p.Printf(" PRIMARY       I  %3s I %6d I %3s    I %d\n",
+				f.Name, f.Length, f.Format, f.Length)
+		}
+
+	case *models.FieldDescriptor:
+
+		f, _ := fdt.(*models.FieldDescriptor)
+
+		for i := 0; i < int(f.Level); i++ {
+			space.WriteString(" ")
+		}
+		after := bytes.Buffer{}
+		for i := int(f.Level); i < 8; i++ {
+			after.WriteString(" ")
+		}
+
+		switch f.Type {
+		case "PHONETIC":
+			p.Printf(" PHONETIC I   %3s I  %5s   \n",
+				f.Name, f.Flags)
+		case "FIELD":
+			p.Printf("%s%d%s I %3s  I %6d  I %3s   I %s\n", space.String(), f.Level, after.String(),
+				f.Name, f.Length, f.Format, f.Flags)
+		case "COLLATION":
+			p.Printf(" COLL     I    %-17s \n", f.Flags)
+		case "SUB":
+			fsf := (f.SubFields)[0]
+			sf := *fsf
+			p.Printf(" SUB      I   %3s I %5d I %5s  I %-17s I %3s(%5d,%5d)\n",
+				f.Name, f.Length, f.Format, f.Flags, sf.SubName, sf.From, sf.To)
+		case "SUPER":
+			for i, s := range f.SubFields {
+				if i == 0 {
+					p.Printf(" SUPER    I   %3s I %5d I %5s  I %-17s I %3s(%5d,%5d)\n",
+						f.Name, f.Length, f.Format, f.Flags, s.SubName, s.From, s.To)
+				} else {
+					p.Printf("          I       I       I        I %-17s I %3s(%5d,%5d)\n", " ", s.SubName, s.From, s.To)
+				}
 			}
+		default:
+			p.Printf(" PRIMARY       I  %3s I %6d I %3s    I %d\n",
+				f.Name, f.Length, f.Format, f.Length)
+
 		}
 	default:
-		p.Printf(" PRIMARY       I  %3s I %6d I %3s    I %d\n",
-			f.Name, f.Length, f.Format, f.Length)
-
+		fmt.Printf("I don't know about type %T!\n", v)
 	}
 
 }

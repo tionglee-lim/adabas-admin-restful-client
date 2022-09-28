@@ -15,6 +15,10 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 #
+GOARCH     ?= $(shell $(GO) env GOARCH)
+GOOS       ?= $(shell $(GO) env GOOS)
+GOEXE      ?= $(shell $(GO) env GOEXE)
+GOPATH     ?= $(shell $(GO) env GOPATH)
 
 PKGS        = $(or $(PKG),$(shell cd $(CURDIR) && env $(GO) list ./... | grep -v "^vendor/"))
 TESTPKGS    = $(shell env $(GO) list -f '{{ if or .TestGoFiles .XTestGoFiles }}{{ .ImportPath }}{{ end }}' $(PKGS))
@@ -23,6 +27,7 @@ GO      = go
 GODOC   = godoc
 GOARCH   ?= $(shell $(GO) env GOARCH)
 GOOS     ?= $(shell $(GO) env GOOS)
+GOBIN    ?= $(if $(shell $(GO) env GOBIN),$(shell $(GO) env GOBIN),$(GOPATH)/bin)
 TIMEOUT = 2000
 V = 0
 Q = $(if $(filter 1,$V),,@)
@@ -37,6 +42,7 @@ lib: $(LIBS) $(CEXEC)
 
 prepare: $(LOGPATH) $(CURLOGPATH) $(BIN) $(BINTOOLS)
 	@echo "Build architecture ${GOARCH} ${GOOS} network=${WCPHOST} GOFLAGS=$(GO_FLAGS)"
+	@echo "GOBIN=$(GOBIN)"
 
 $(LIBS): ; $(info $(M) building libraries…) @ ## Build program binary
 	$Q cd $(CURDIR) && \
@@ -75,9 +81,14 @@ $(BINTOOLS)/%: ; $(info $(M) building tool $(BINTOOLS) on $(REPOSITORY)…)
 		(GOPATH=$$tmp go clean -modcache ./...); \
 		rm -rf $$tmp ; exit $$ret
 
+$(GOBIN)/%: ; $(info $(M) building binary $(TOOL) on $(REPOSITORY)…)
+	$Q tmp=$$(mktemp -d); cd $$tmp; \
+	CGO_CFLAGS= CGO_LDFLAGS= $(GO) install $(REPOSITORY) || ret=$$?; \
+	rm -rf $$tmp ; exit $$ret
+
 # Tools
-GOSWAGGER = $(BINTOOLS)/swagger
-$(BINTOOLS)/swagger: REPOSITORY=github.com/go-swagger/go-swagger/cmd/swagger
+GOSWAGGER = $(GOBIN)/swagger
+$(GOBIN)/swagger: REPOSITORY=github.com/go-swagger/go-swagger/cmd/swagger@latest
 
 GOLINT = $(BIN)/golint
 $(BIN)/golint: REPOSITORY=golang.org/x/lint/golint

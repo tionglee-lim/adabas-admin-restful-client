@@ -92,11 +92,11 @@ func Operation(clientInstance *client.AdabasAdmin, dbid int, operation string, a
 		return err
 	}
 	if accepted != nil {
-		fmt.Printf("Database status dbid=%d %s\n", accepted.Payload.Status.Dbid, accepted.Payload.Status.Message)
+		fmt.Printf("Database status dbid=%d %s\n", int(accepted.Payload.Status.Dbid), accepted.Payload.Status.Message)
 	}
 	if resp != nil {
 		if resp.Payload.Database != nil {
-			fmt.Printf("Database status dbid=%d %s\n", resp.Payload.Database.Dbid, resp.Payload.Database.Status)
+			fmt.Printf("Database status dbid=%s %s\n", resp.Payload.Database.Dbid, resp.Payload.Database.Status)
 		} else {
 			fmt.Printf("Database operation inited successfully\n")
 		}
@@ -109,7 +109,7 @@ func createDatabaseInstance(dbid int, input string) *models.Database {
 	if input == "" {
 		database.Name = "DEMODB"
 		database.LoadDemo = true
-		database.Dbid = int64(dbid)
+		database.Dbid = strconv.Itoa(dbid)
 		container := &models.Container{BlockSize: "8K", ContainerSize: "60M",
 			Path: fmt.Sprintf("${ADADATADIR}/db%03d/ASSO1.%03d", dbid, dbid)}
 		database.ContainerList = append(database.ContainerList, container)
@@ -177,7 +177,7 @@ func Create(clientInstance *client.AdabasAdmin, dbid int, input string, auth run
 	params := offline.NewPostAdabasDatabaseParams()
 	params.Database = createDatabaseInstance(dbid, input)
 	if dbid > 0 {
-		params.Database.Dbid = int64(dbid)
+		params.Database.Dbid = strconv.Itoa(dbid)
 	}
 	resp, err := clientInstance.Offline.PostAdabasDatabase(params, auth)
 	if err != nil {
@@ -203,7 +203,7 @@ func Create(clientInstance *client.AdabasAdmin, dbid int, input string, auth run
 // Delete database
 func Delete(clientInstance *client.AdabasAdmin, dbid int, input string, auth runtime.ClientAuthInfoWriter) error {
 	params := offline.NewDeleteAdabasDatabaseParams()
-	params.DbidOperation = float64(dbid)
+	params.DbidOperation = int64(dbid)
 	resp, err := clientInstance.Offline.DeleteAdabasDatabase(params, auth)
 	if err != nil {
 		switch err.(type) {
@@ -228,7 +228,8 @@ func Delete(clientInstance *client.AdabasAdmin, dbid int, input string, auth run
 func Rename(clientInstance *client.AdabasAdmin, dbid int, param string, auth runtime.ClientAuthInfoWriter) error {
 	params := online_offline.NewPutDatabaseResourceParams()
 	params.DbidOperation = strconv.Itoa(dbid)
-	params.Name = param
+
+	params.Name = &param
 	resp, acpt, err := clientInstance.OnlineOffline.PutDatabaseResource(params, auth)
 	if err != nil {
 		switch err.(type) {
@@ -259,8 +260,8 @@ func Rename(clientInstance *client.AdabasAdmin, dbid int, param string, auth run
 // NucleusLog show nucleus log
 func NucleusLog(clientInstance *client.AdabasAdmin, dbid int, auth runtime.ClientAuthInfoWriter) error {
 	params := online_offline.NewGetDatabaseNucleusLogParams()
-	params.Dbid = float64(dbid)
-	resp, err := clientInstance.OnlineOffline.GetDatabaseNucleusLog(params, auth)
+	params.Dbid = strconv.Itoa(dbid)
+	_, resp, err := clientInstance.OnlineOffline.GetDatabaseNucleusLog(params, auth)
 	if err != nil {
 		switch err.(type) {
 		case *online_offline.GetDatabaseNucleusLogBadRequest:
@@ -273,7 +274,7 @@ func NucleusLog(clientInstance *client.AdabasAdmin, dbid int, auth runtime.Clien
 	}
 
 	fmt.Printf("\nDatabase %03d Nucleus log:\n", dbid)
-	fmt.Println(resp.Payload.Log.Log)
+	fmt.Println(resp.Payload.NucleusLogs)
 	return nil
 }
 
@@ -303,8 +304,8 @@ func Information(clientInstance *client.AdabasAdmin, dbid int, auth runtime.Clie
 	p.Printf("Name                : %s\n", resp.Payload.Gcb.Name)
 	p.Printf("Version             : %s\n", resp.Payload.Gcb.StructureLevel)
 	p.Printf("Architecture        : %s\n", resp.Payload.Gcb.Architecture)
-	p.Printf("Created             : %s\n", time.Time(resp.Payload.Gcb.Date).Format("Mon Jan _2 15:04:05 2006"))
-	p.Printf("Last changed        : %s\n", time.Time(resp.Payload.Gcb.TimeStampLog).Format("Mon Jan _2 15:04:05 2006"))
+	p.Printf("Created             : %s\n", *resp.Payload.Gcb.Date)
+	p.Printf("Last changed        : %s\n", *resp.Payload.Gcb.TimeStampLog)
 	p.Printf("PLOG count          : %d\n", resp.Payload.Gcb.PLOGCount)
 	p.Printf("Current CLOG        : %d\n", resp.Payload.Gcb.CurrentCLOGNumber)
 	p.Printf("Current PLOG        : %d\n", resp.Payload.Gcb.CurrentPLOGNumber)
@@ -319,7 +320,7 @@ func Information(clientInstance *client.AdabasAdmin, dbid int, auth runtime.Clie
 	p.Printf(" Metadata File      : %d\n", resp.Payload.Gcb.ReplicationMetadataFile)
 	p.Printf(" Command File       : %d\n", resp.Payload.Gcb.ReplicationCommandFile)
 	p.Printf(" Transition File    : %d\n", resp.Payload.Gcb.ReplicationTransitionFile)
-	p.Printf(" Timestamp Repl     : %s\n", time.Time(resp.Payload.Gcb.TimeStampReplication).Format("Mon Jan _2 15:04:05 2006"))
+	p.Printf(" Timestamp Repl     : %s\n", *resp.Payload.Gcb.TimeStampReplication)
 	p.Printf("Work\n")
 	for i, e := range resp.Payload.Gcb.WORKExtents {
 		if e.RABNunused != 0 {
@@ -341,7 +342,7 @@ func Information(clientInstance *client.AdabasAdmin, dbid int, auth runtime.Clie
 // Activity database activity
 func Activity(clientInstance *client.AdabasAdmin, dbid int, auth runtime.ClientAuthInfoWriter) error {
 	params := online.NewGetDatabaseActStatsParams()
-	params.Dbid = float64(dbid)
+	params.Dbid = strconv.Itoa(dbid)
 	resp, err := clientInstance.Online.GetDatabaseActStats(params, auth)
 	if err != nil {
 		switch err.(type) {
@@ -378,7 +379,7 @@ func Activity(clientInstance *client.AdabasAdmin, dbid int, auth runtime.ClientA
 // ThreadTable display thread table
 func ThreadTable(clientInstance *client.AdabasAdmin, dbid int, auth runtime.ClientAuthInfoWriter) error {
 	params := online.NewGetDatabaseThreadTableParams()
-	params.Dbid = float64(dbid)
+	params.Dbid = strconv.Itoa(dbid)
 	resp, err := clientInstance.Online.GetDatabaseThreadTable(params, auth)
 	if err != nil {
 		switch err.(type) {
@@ -508,7 +509,8 @@ func ParameterInfo(clientInstance *client.AdabasAdmin, dbid int, auth runtime.Cl
 			default:
 				p.Printf("  Default: %14s  Configuration: %14s  Online: %14s\n", parameter.DefaultValue, parameter.InifileValue, parameter.OnlineValue)
 			}
-			if parameter.IsMinValueAvailable {
+
+			if *parameter.IsMinValueAvailable == true {
 				p.Printf("  Minimum: %14d\n", parameter.MinValue)
 			}
 			if *parameter.IsMaxValueAvailable {
@@ -911,7 +913,7 @@ func Ucb(clientInstance *client.AdabasAdmin, dbid int, auth runtime.ClientAuthIn
 	fmt.Printf(" %-20s %-10s %-8s %-8s %-8s\n", "Date/Time", "Entry ID", "Utility", "Mode", "Files")
 	for _, c := range resp.Payload.UCB.UCB {
 		s, _ := json.Marshal(c.UcbFiles)
-		fmt.Printf(" %-20s %-10d %-8s %-8s %s\n", c.Date, c.Sequence, c.ID, c.DBMode, s)
+		fmt.Printf(" %-20s %-10d %-8s %-8s %s\n", *c.Date, c.Sequence, c.ID, c.DBMode, s)
 	}
 	return nil
 }
