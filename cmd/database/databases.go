@@ -161,7 +161,7 @@ func Status(clientInstance *client.AdabasAdmin, dbid int, auth runtime.ClientAut
 	p := message.NewPrinter(language.English)
 
 	p.Println()
-	p.Printf(" Adabas status of database %d: ", resp.Payload.Database.Dbid)
+	p.Printf(" Adabas status of database %v: ", resp.Payload.Database.Dbid)
 	if resp != nil {
 		p.Printf(" %s\n", resp.Payload.Database.Status)
 	}

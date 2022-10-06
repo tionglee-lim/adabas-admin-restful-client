@@ -28,6 +28,7 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -186,7 +187,7 @@ func main() {
 
 	user := flag.String("user", "admin", "User name of the main administrator (default: admin)")
 	passwd := flag.String("passwd", "", "Password of administration, may be predefined using environment variable ADABAS_ADMIN_PASSWORD")
-	dbid := flag.Int("dbid", 0, "Adabas Database id")
+	dbid := flag.String("dbid", "0", "Adabas Database id")
 	fnr := flag.Int("fnr", 0, "Adabas Database file")
 	sleep := flag.Int("repeat", 0, "Repeat display after given seconds")
 	ignoreTLS := flag.Bool("ignoreTLS", false, "Ignore TLS certificate validation")
@@ -312,6 +313,13 @@ func main() {
 
 	defer printEnd(time.Now())
 
+	// convert dbid into integer type
+	Dbid, err := strconv.Atoi(*dbid)
+	if err != nil {
+		// ... handle error
+		panic(err)
+	}
+
 	for {
 		var err error
 		for _, a := range args {
@@ -327,67 +335,67 @@ func main() {
 			case list:
 				err = database.List(clientInstance, auth)
 			case start:
-				err = database.Operation(clientInstance, *dbid, "start", auth)
+				err = database.Operation(clientInstance, Dbid, "start", auth)
 			case shutdown:
-				err = database.Operation(clientInstance, *dbid, "shutdown", auth)
+				err = database.Operation(clientInstance, Dbid, "shutdown", auth)
 			case cancel:
-				err = database.Operation(clientInstance, *dbid, "cancel", auth)
+				err = database.Operation(clientInstance, Dbid, "cancel", auth)
 			case abort:
-				err = database.Operation(clientInstance, *dbid, "abort", auth)
+				err = database.Operation(clientInstance, Dbid, "abort", auth)
 			case info:
-				err = database.Operation(clientInstance, *dbid, "", auth)
+				err = database.Operation(clientInstance, Dbid, "", auth)
 			case userqueue:
-				err = database.UserQueue(clientInstance, *dbid, auth)
+				err = database.UserQueue(clientInstance, Dbid, auth)
 			case cmdqueue:
-				err = database.CommandQueue(clientInstance, *dbid, auth)
+				err = database.CommandQueue(clientInstance, Dbid, auth)
 			case holdqueue:
-				err = database.HoldQueue(clientInstance, *dbid, auth)
+				err = database.HoldQueue(clientInstance, Dbid, auth)
 			case highwater:
-				err = database.Highwater(clientInstance, *dbid, auth)
+				err = database.Highwater(clientInstance, Dbid, auth)
 			case commandstats:
-				err = database.CommandStats(clientInstance, *dbid, auth)
+				err = database.CommandStats(clientInstance, Dbid, auth)
 			case bp:
-				err = database.BufferpoolStats(clientInstance, *dbid, auth)
+				err = database.BufferpoolStats(clientInstance, Dbid, auth)
 			case activity:
-				err = database.Activity(clientInstance, *dbid, auth)
+				err = database.Activity(clientInstance, Dbid, auth)
 			case threadtable:
-				err = database.ThreadTable(clientInstance, *dbid, auth)
+				err = database.ThreadTable(clientInstance, Dbid, auth)
 			case createdatabase:
-				err = database.Create(clientInstance, *dbid, input.String(), auth)
+				err = database.Create(clientInstance, Dbid, input.String(), auth)
 			case deletedatabase:
-				err = database.Delete(clientInstance, *dbid, input.String(), auth)
+				err = database.Delete(clientInstance, Dbid, input.String(), auth)
 			case renamedatabase:
-				err = database.Rename(clientInstance, *dbid, *param, auth)
+				err = database.Rename(clientInstance, Dbid, *param, auth)
 			case parameter:
-				err = database.Parameter(clientInstance, *dbid, *param, auth)
+				err = database.Parameter(clientInstance, Dbid, *param, auth)
 			case parameterinfo:
-				err = database.ParameterInfo(clientInstance, *dbid, auth)
+				err = database.ParameterInfo(clientInstance, Dbid, auth)
 			case setparameter:
-				err = database.SetParameter(clientInstance, *dbid, *param, auth)
+				err = database.SetParameter(clientInstance, Dbid, *param, auth)
 			case nucleuslog:
-				err = database.NucleusLog(clientInstance, *dbid, auth)
+				err = database.NucleusLog(clientInstance, Dbid, auth)
 			case files:
-				err = database.Files(clientInstance, *dbid, auth)
+				err = database.Files(clientInstance, Dbid, auth)
 			case file:
-				err = database.File(clientInstance, *dbid, *fnr, *param, auth)
+				err = database.File(clientInstance, Dbid, *fnr, *param, auth)
 			case deletefile:
-				err = database.DeleteFile(clientInstance, *dbid, *fnr, auth)
+				err = database.DeleteFile(clientInstance, Dbid, *fnr, auth)
 			case renumberfile:
-				err = database.RenumberFile(clientInstance, *dbid, *fnr, *param, auth)
+				err = database.RenumberFile(clientInstance, Dbid, *fnr, *param, auth)
 			case refreshfile:
-				err = database.RefreshFile(clientInstance, *dbid, *fnr, auth)
+				err = database.RefreshFile(clientInstance, Dbid, *fnr, auth)
 			case information:
-				err = database.Information(clientInstance, *dbid, auth)
+				err = database.Information(clientInstance, Dbid, auth)
 			case fields:
-				err = database.Fields(clientInstance, *dbid, *fnr, auth)
+				err = database.Fields(clientInstance, Dbid, *fnr, auth)
 			case container:
-				err = database.Container(clientInstance, *dbid, auth)
+				err = database.Container(clientInstance, Dbid, auth)
 			case renamefile:
-				err = database.RenameFile(clientInstance, *dbid, *fnr, *param, auth)
+				err = database.RenameFile(clientInstance, Dbid, *fnr, *param, auth)
 			case createfile:
-				err = database.CreateFile(clientInstance, *dbid, *fnr, input, auth)
+				err = database.CreateFile(clientInstance, Dbid, *fnr, input, auth)
 			case checkpoints:
-				err = database.Checkpoints(clientInstance, *dbid, *param, auth)
+				err = database.Checkpoints(clientInstance, Dbid, *param, auth)
 			case joblist:
 				err = job.List(clientInstance, auth)
 			case jobstart:
@@ -401,13 +409,13 @@ func main() {
 			case joblog:
 				err = job.Log(clientInstance, *param, auth)
 			case listucb:
-				err = database.Ucb(clientInstance, *dbid, auth)
+				err = database.Ucb(clientInstance, Dbid, auth)
 			case deleteucb:
-				err = database.DeleteUcb(clientInstance, *dbid, *param, auth)
+				err = database.DeleteUcb(clientInstance, Dbid, *param, auth)
 			case addfields:
-				err = database.AddFields(clientInstance, *dbid, *fnr, *param, auth)
+				err = database.AddFields(clientInstance, Dbid, *fnr, *param, auth)
 			case status:
-				err = database.Status(clientInstance, *dbid, auth)
+				err = database.Status(clientInstance, Dbid, auth)
 			case filelocations:
 				err = filebrowser.Locations(clientInstance, auth)
 			case listfiles:
